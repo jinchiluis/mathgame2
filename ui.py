@@ -255,21 +255,7 @@ elif st.session_state.stage == 'game_over':
         st.info("💫 不错的挑战！继续练习能做得更好！")
     else:
         st.info("🎯 勇敢的尝试！多练习基础乘法，提高反应速度！")
-    
-    # 显示达到的难度级别
-    if questions_answered >= 26:
-        difficulty_reached = "🚀 闪电模式 (1秒)"
-    elif questions_answered >= 21:
-        difficulty_reached = "⚡ 极速挑战 (3秒)"
-    elif questions_answered >= 11:
-        difficulty_reached = "🔥 快速模式 (5秒)"
-    elif questions_answered >= 6:
-        difficulty_reached = "⏰ 加速阶段 (7秒)"
-    else:
-        difficulty_reached = "🎯 练习阶段 (10秒)"
-    
-    st.info(f"最高难度达到: {difficulty_reached}")
-    
+      
     st.markdown("---")
     
     name = st.text_input("🏷️ 请输入你的名字记录高分:", placeholder="输入你的游戏昵称...")
