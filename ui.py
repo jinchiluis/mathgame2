@@ -23,6 +23,8 @@ if 'question_start_time' not in st.session_state:
     st.session_state.question_start_time = None
 if 'timer_expired' not in st.session_state:
     st.session_state.timer_expired = False
+if 'question_id' not in st.session_state:
+    st.session_state.question_id = 0
 
 st.title("🧮 极限数学挑战")
 
@@ -122,6 +124,7 @@ if st.session_state.stage == 'start':
         st.session_state.game.reset()
         st.session_state.question_start_time = time.time()
         st.session_state.timer_expired = False
+        st.session_state.question_id = 0
         st.rerun()
 
 # 游戏界面
@@ -147,6 +150,7 @@ elif st.session_state.stage == 'playing':
     if not question:
         question = game.generate_question()
         st.session_state.question_start_time = time.time()  # Reset timer for new question
+        st.session_state.question_id += 1  # Increment question ID for unique keys
 
     # 游戏状态显示，仅展示当前得分
     st.metric("当前得分", game.score, delta=None)
@@ -187,7 +191,8 @@ elif st.session_state.stage == 'playing':
         with cols[col_idx]:
             # 根据时间紧迫程度改变按钮类型
             button_type = "secondary"
-            if st.button(str(option), key=f"option_{i}_{game.questions_answered}", use_container_width=True, type=button_type):
+            # Use question_id in the key to ensure buttons are completely refreshed for each new question
+            if st.button(str(option), key=f"q{st.session_state.question_id}_opt{i}", use_container_width=True, type=button_type):
                 selected_option = option
                 
     # 当选择了选项时检查答案
@@ -199,6 +204,7 @@ elif st.session_state.stage == 'playing':
             # 生成新问题并重置计时器
             st.session_state.game.generate_question()
             st.session_state.question_start_time = time.time()
+            st.session_state.question_id += 1  # Increment for next question
             st.balloons()
             time.sleep(1)
             st.rerun()
@@ -208,9 +214,17 @@ elif st.session_state.stage == 'playing':
             time.sleep(2)
             st.rerun()
     
-    # 自动刷新以更新计时器
+    # 自动刷新以更新计时器 - 智能刷新率避免竞态条件
     if time_remaining > 0:
-        time.sleep(0.1)
+        # 根据剩余时间调整刷新率：时间越紧迫，刷新越频繁
+        if time_remaining > 5:
+            refresh_interval = 1.0  # 时间充裕时，1秒刷新一次
+        elif time_remaining > 2:
+            refresh_interval = 0.5  # 中等紧急，0.5秒刷新一次
+        else:
+            refresh_interval = 0.2  # 非常紧急，0.2秒刷新一次
+        
+        time.sleep(refresh_interval)
         st.rerun()
     
     st.markdown("---")
