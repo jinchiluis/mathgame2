@@ -85,15 +85,6 @@ def display_highscores():
             }
         )
 
-def check_time_expired(game):
-    """Check if time has expired for current question"""
-    if st.session_state.question_start_time is None:
-        return False
-    
-    current_time = time.time()
-    elapsed_time = current_time - st.session_state.question_start_time
-    return elapsed_time >= game.time_limit
-
 def get_time_remaining(game):
     """Get remaining time for current question"""
     if st.session_state.question_start_time is None:
@@ -145,12 +136,6 @@ if st.session_state.stage == 'start':
 elif st.session_state.stage == 'playing':
     game = st.session_state.game
     
-    # Check if time expired before showing the interface
-    if check_time_expired(game) and not st.session_state.timer_expired:
-        st.session_state.timer_expired = True
-        st.session_state.stage = 'game_over'
-        st.rerun()
-    
     question = game.current_question
     if not question:
         question = game.generate_question()
@@ -163,7 +148,7 @@ elif st.session_state.stage == 'playing':
     time_remaining = get_time_remaining(game)
     st.info(game.get_time_remaining_message())
     
-    # JavaScript Timer Display
+    # JavaScript Timer Display with continuous countdown
     st.markdown(f"""
     <div id="timer-container" style="text-align: center; margin: 20px 0;">
         <div id="timer-display" style="
@@ -179,7 +164,7 @@ elif st.session_state.stage == 'playing':
             <span id="countdown">⏰ {time_remaining:.1f}</span>
         </div>
         <div id="timer-status" style="font-size: 1.1em; color: #666;">
-            点击答案选择，倒计时会自动停止
+            Zeit läuft! Schnell antworten!
         </div>
     </div>
     
@@ -193,74 +178,96 @@ elif st.session_state.stage == 'playing':
         let timeRemaining = {time_remaining};
         const timeLimit = {game.time_limit};
         let isExpired = false;
+        let answerSubmitted = false;
         
         function updateTimer() {{
             const display = document.getElementById('countdown');
             const container = document.getElementById('timer-display');
             const status = document.getElementById('timer-status');
             
-            if (display && timeRemaining > 0 && !isExpired) {{
+            if (display && timeRemaining > 0 && !isExpired && !answerSubmitted) {{
                 display.textContent = '⏰ ' + timeRemaining.toFixed(1);
                 
                 // Change colors based on time remaining
                 if (timeRemaining > timeLimit * 0.6) {{
                     container.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    container.style.animation = 'none';
                 }} else if (timeRemaining > timeLimit * 0.3) {{
                     container.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+                    container.style.animation = 'none';
                 }} else {{
                     container.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)';
                     container.style.animation = 'pulse 0.5s infinite alternate';
                 }}
                 
                 timeRemaining -= 0.1;
-            }} else if (timeRemaining <= 0 && !isExpired) {{
+            }} else if (timeRemaining <= 0 && !isExpired && !answerSubmitted) {{
                 isExpired = true;
                 display.textContent = '⏰ 0.0';
-                status.textContent = '时间到！游戏结束...';
+                status.textContent = 'Zeit abgelaufen! Spiel beendet...';
                 container.style.background = 'linear-gradient(135deg, #333 0%, #666 100%)';
+                container.style.animation = 'none';
                 clearInterval(window.gameTimer);
                 
-                // Auto-redirect when time is up
+                // Create hidden form to submit time expiry
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.style.display = 'none';
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'time_expired_js';
+                input.value = 'true';
+                form.appendChild(input);
+                document.body.appendChild(form);
+                
+                // Submit after small delay
                 setTimeout(() => {{
-                    // Trigger a form submission to end the game
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = window.location.href;
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'time_expired';
-                    input.value = 'true';
-                    form.appendChild(input);
-                    document.body.appendChild(form);
-                    form.submit();
-                }}, 1500);
+                    // Trigger Streamlit rerun by modifying session state through a hidden input
+                    const buttons = document.querySelectorAll('button[data-testid="baseButton-secondary"]');
+                    if (buttons.length > 0) {{
+                        // Find the first answer button and click it with time expired flag
+                        window.timeExpiredFlag = true;
+                        buttons[0].click();
+                    }} else {{
+                        // Fallback: reload page
+                        window.location.reload();
+                    }}
+                }}, 1000);
             }}
         }}
         
         // Add pulse animation CSS
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes pulse {{
-                from {{ transform: scale(1); }}
-                to {{ transform: scale(1.05); }}
-            }}
-        `;
-        document.head.appendChild(style);
+        if (!document.getElementById('pulse-style')) {{
+            const style = document.createElement('style');
+            style.id = 'pulse-style';
+            style.textContent = `
+                @keyframes pulse {{
+                    from {{ transform: scale(1); }}
+                    to {{ transform: scale(1.05); }}
+                }}
+            `;
+            document.head.appendChild(style);
+        }}
         
         // Start timer
         updateTimer(); // Initial call
         window.gameTimer = setInterval(updateTimer, 100);
         
-        // Stop timer when any button is clicked
+        // Monitor for answer button clicks
         document.addEventListener('click', function(e) {{
             if (e.target.tagName === 'BUTTON' && e.target.textContent.match(/^\d+$/)) {{
-                clearInterval(window.gameTimer);
+                answerSubmitted = true;
                 const status = document.getElementById('timer-status');
-                if (status) {{
-                    status.textContent = '已选择答案，等待结果...';
+                if (status && !isExpired) {{
+                    status.textContent = 'Antwort ausgewählt! Verarbeitung...';
                 }}
+                // Don't clear timer immediately - let it show the frozen time
             }}
         }});
+        
+        // Global flag for time expiry detection
+        window.timeExpiredFlag = false;
+        
     }})();
     </script>
     """, unsafe_allow_html=True)
@@ -291,12 +298,6 @@ elif st.session_state.stage == 'playing':
     # Multiple Choice Options
     st.markdown("### 🤔 选择正确答案:")
     
-    # Check for time expiry from form submission
-    if st.query_params.get('time_expired') == 'true':
-        st.session_state.timer_expired = True
-        st.session_state.stage = 'game_over'
-        st.rerun()
-    
     # 创建选项按钮
     cols = st.columns(2)
     
@@ -304,11 +305,24 @@ elif st.session_state.stage == 'playing':
         col_idx = i % 2
         with cols[col_idx]:
             if st.button(str(option), key=f"option_{i}_{game.questions_answered}", use_container_width=True):
-                # Check if time expired when button was clicked
-                if check_time_expired(game):
-                    st.session_state.timer_expired = True
-                    st.session_state.stage = 'game_over'
-                    st.rerun()
+                # Check for JavaScript time expiry flag
+                st.markdown("""
+                <script>
+                if (window.timeExpiredFlag) {
+                    // Time expired during button click
+                    window.timeExpiredFlag = false;
+                }
+                </script>
+                """, unsafe_allow_html=True)
+                
+                # Simple server-side time check as backup
+                current_time = time.time()
+                if st.session_state.question_start_time:
+                    elapsed = current_time - st.session_state.question_start_time
+                    if elapsed >= game.time_limit:
+                        st.session_state.timer_expired = True
+                        st.session_state.stage = 'game_over'
+                        st.rerun()
                 
                 # Process the answer
                 if game.check_answer(option):
