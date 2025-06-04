@@ -7,54 +7,39 @@ class Game:
     def reset(self):
         self.score = 0
         self.current_question = None
-        # Separate max numbers for each operation type
-        self.max_num_add = 10
-        self.max_num_sub = 10
-        self.max_num_mul = 10
-        self.max_num_div = 10
+        self.questions_answered = 0  # Track total questions answered
+        self.time_limit = 10  # Current time limit for the question
 
     def increment_score(self):
         self.score += 1
-        
-        # Increase difficulty more gradually
-        self.max_num_add += 1  # Addition difficulty increases with each score
-        
-        # Increase difficulty for unlocked operations more slowly
-        if self.score >= 10:
-            if self.score % 2 == 0:  # Every 2 points after score 10
-                self.max_num_sub += 1
+        self.questions_answered += 1
+        self.update_time_limit()
 
-        if self.score >= 20:
-            if self.score % 3 == 0:  # Every 3 points after score 20
-                self.max_num_mul += 1
-
-        if self.score >= 30:
-            if self.score % 4 == 0:  # Every 4 points after score 30
-                self.max_num_div += 1
+    def update_time_limit(self):
+        """Update time limit based on questions answered"""
+        if self.questions_answered <= 5:
+            self.time_limit = 10  # 10 seconds for first 5 questions
+        elif self.questions_answered <= 10:
+            self.time_limit = 7   # 7 seconds for questions 6-10
+        elif self.questions_answered <= 20:
+            self.time_limit = 5   # 5 seconds for questions 11-20
+        elif self.questions_answered <= 25:
+            self.time_limit = 3   # 3 seconds for questions 21-25
+        else:
+            self.time_limit = 1   # 1 second for questions 26+
 
     def generate_question(self):
         """Generate a question based on current score"""
-        # Determine available operations based on score
-        operations = ['addition']
-
-        if self.score >= 10:
-            operations.append('subtraction')
-        if self.score >= 20:
-            operations.append('multiplication')
-        if self.score >= 30:
-            operations.append('division')
-
-        # Randomly select an operation
-        operation = random.choice(operations)
-
-        if operation == 'addition':
-            self.current_question = self.generate_addition()
-        elif operation == 'subtraction':
-            self.current_question = self.generate_subtraction()
-        elif operation == 'multiplication':
+        # Only multiplication until 10th question, then add division
+        if self.questions_answered < 10:
             self.current_question = self.generate_multiplication()
-        elif operation == 'division':
-            self.current_question = self.generate_division()
+        else:
+            # After 10th question, randomly choose between multiplication and division
+            operation = random.choice(['multiplication', 'division'])
+            if operation == 'multiplication':
+                self.current_question = self.generate_multiplication()
+            else:
+                self.current_question = self.generate_division()
 
         return self.current_question
 
@@ -85,39 +70,10 @@ class Game:
         
         return options
 
-    def generate_addition(self):
-        """Generate addition question"""
-        a = random.randint(1, self.max_num_add)
-        b = random.randint(1, self.max_num_add)
-        correct_answer = a + b
-        options = self.generate_multiple_choice_options(correct_answer)
-        
-        return {
-            'text': f"{a} + {b} = ?",
-            'answer': correct_answer,
-            'options': options
-        }
-
-    def generate_subtraction(self):
-        """Generate subtraction question (ensuring positive result)"""
-        a = random.randint(1, self.max_num_sub)
-        b = random.randint(1, self.max_num_sub)
-        # Ensure a >= b for positive result
-        if a < b:
-            a, b = b, a
-        correct_answer = a - b
-        options = self.generate_multiple_choice_options(correct_answer)
-        
-        return {
-            'text': f"{a} - {b} = ?",
-            'answer': correct_answer,
-            'options': options
-        }
-
     def generate_multiplication(self):
-        """Generate multiplication question"""
-        a = random.randint(1, self.max_num_mul)
-        b = random.randint(1, self.max_num_mul)
+        """Generate multiplication question (numbers 1-10)"""
+        a = random.randint(1, 10)
+        b = random.randint(1, 10)
         correct_answer = a * b
         options = self.generate_multiple_choice_options(correct_answer)
         
@@ -128,10 +84,10 @@ class Game:
         }
 
     def generate_division(self):
-        """Generate division question (ensuring whole number result)"""
+        """Generate division question (ensuring whole number result, numbers 1-10)"""
         # Generate the answer first, then create the division
-        quotient = random.randint(1, self.max_num_div)
-        divisor = random.randint(2, min(self.max_num_div, 12))  # Keep divisor reasonable
+        quotient = random.randint(1, 10)
+        divisor = random.randint(2, 10)  # Divisor between 2-10
         dividend = quotient * divisor  # This ensures clean division
         correct_answer = quotient
         options = self.generate_multiple_choice_options(correct_answer)
@@ -149,11 +105,20 @@ class Game:
 
     def get_current_operations(self):
         """Return list of currently available operations for display"""
-        operations = ['Addition']
-        if self.score >= 10:
-            operations.append('Subtraction')
-        if self.score >= 20:
-            operations.append('Multiplication')
-        if self.score >= 30:
-            operations.append('Division')
-        return operations
+        if self.questions_answered < 10:
+            return ['Multiplication']
+        else:
+            return ['Multiplication', 'Division']
+
+    def get_time_remaining_message(self):
+        """Get a descriptive message about time limits"""
+        if self.questions_answered < 5:
+            return f"⏱️ 时间限制: {self.time_limit} 秒 (第 {self.questions_answered + 1}/5 题 - 练习阶段)"
+        elif self.questions_answered < 10:
+            return f"⏱️ 时间限制: {self.time_limit} 秒 (第 {self.questions_answered + 1}/10 题 - 开始加速)"
+        elif self.questions_answered < 20:
+            return f"⏱️ 时间限制: {self.time_limit} 秒 (第 {self.questions_answered + 1} 题 - 快速模式)"
+        elif self.questions_answered < 25:
+            return f"⏱️ 时间限制: {self.time_limit} 秒 (第 {self.questions_answered + 1} 题 - 极速挑战!)"
+        else:
+            return f"⏱️ 时间限制: {self.time_limit} 秒 (第 {self.questions_answered + 1} 题 - 闪电模式!!)"
