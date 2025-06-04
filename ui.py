@@ -1,11 +1,15 @@
 import os
 import streamlit as st
+from dotenv import load_dotenv
 from game import Game
 from highscores import HighscoreManager
 
+# Load environment variables from .env if present
+load_dotenv()
+
 # 初始化 Supabase 高分管理器
-supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_KEY")
+supabase_url = os.getenv("SUPABASE_URL", st.secrets.get("SUPABASE_URL"))
+supabase_key = os.getenv("SUPABASE_KEY", st.secrets.get("SUPABASE_KEY"))
 highscore_manager = HighscoreManager(supabase_url, supabase_key)
 
 # 在 Session State 中存储游戏对象和界面阶段
