@@ -214,17 +214,9 @@ elif st.session_state.stage == 'playing':
             time.sleep(2)
             st.rerun()
     
-    # 自动刷新以更新计时器 - 智能刷新率避免竞态条件
+    # 自动刷新以更新计时器
     if time_remaining > 0:
-        # 根据剩余时间调整刷新率：时间越紧迫，刷新越频繁
-        if time_remaining > 5:
-            refresh_interval = 1.0  # 时间充裕时，1秒刷新一次
-        elif time_remaining > 2:
-            refresh_interval = 0.5  # 中等紧急，0.5秒刷新一次
-        else:
-            refresh_interval = 0.2  # 非常紧急，0.2秒刷新一次
-        
-        time.sleep(refresh_interval)
+        time.sleep(0.3)
         st.rerun()
     
     st.markdown("---")
