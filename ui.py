@@ -28,38 +28,6 @@ if 'question_id' not in st.session_state:
 
 st.title("🧮 极限数学挑战")
 
-# 添加CSS来移除按钮高亮状态，特别是在移动设备上
-st.markdown("""
-<style>
-/* 移除所有按钮的焦点和活动状态高亮 */
-.stButton > button:focus,
-.stButton > button:active,
-.stButton > button:focus:not(:focus-visible) {
-    outline: none !important;
-    box-shadow: none !important;
-    border-color: inherit !important;
-    background-color: inherit !important;
-}
-
-/* 移除移动设备上的触摸高亮 */
-.stButton > button {
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    -khtml-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-    user-select: none !important;
-}
-
-/* 确保按钮在点击后立即恢复正常状态 */
-.stButton > button:not(:hover) {
-    background-color: rgb(255, 255, 255) !important;
-    border: 1px solid rgba(49, 51, 63, 0.2) !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 def display_highscores():
     """显示高分榜的函数"""
     st.header("🏆 高分榜")
