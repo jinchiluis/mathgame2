@@ -85,19 +85,6 @@ def display_highscores():
             }
         )
         
-        # 统计信息
-        if scores:
-            total_players = len(scores)
-            highest_score = max(score['score'] for score in scores)
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("总玩家数", total_players, delta=None)
-            with col2:
-                st.metric("最高分", highest_score, delta=None)
-            with col3:
-                avg_score = sum(score['score'] for score in scores) / len(scores)
-                st.metric("平均分", f"{avg_score:.1f}", delta=None)
 
 # 开始界面
 if st.session_state.stage == 'start':
@@ -106,7 +93,7 @@ if st.session_state.stage == 'start':
     st.markdown("---")
     
     # 游戏说明
-    with st.expander("🎮 极限挑战规则", expanded=True):
+    with st.expander("🎮 极限挑战规则", expanded=False):
         st.markdown("""
         ### 🔥 这是一个极具挑战性的数学游戏！
         
@@ -161,22 +148,8 @@ elif st.session_state.stage == 'playing':
         question = game.generate_question()
         st.session_state.question_start_time = time.time()  # Reset timer for new question
 
-    # 游戏状态显示
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("当前得分", game.score, delta=None)
-    with col2:
-        st.metric("已答题数", game.questions_answered, delta=None)
-    with col3:
-        # 时间显示，根据剩余时间改变颜色
-        if time_remaining > 5:
-            timer_color = "🟢"
-        elif time_remaining > 2:
-            timer_color = "🟡"
-        else:
-            timer_color = "🔴"
-        
-        st.metric(f"{timer_color} 剩余时间", f"{time_remaining:.1f}s", delta=None)
+    # 游戏状态显示，仅展示当前得分
+    st.metric("当前得分", game.score, delta=None)
     
     # 时间限制信息
     st.info(game.get_time_remaining_message())
