@@ -2,8 +2,10 @@ import random
 
 class Game:
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.score = 0
-        self.level = 1
         self.current_question = None
         # Separate max numbers for each operation type
         self.max_num_add = 10
@@ -11,45 +13,35 @@ class Game:
         self.max_num_mul = 10
         self.max_num_div = 10
 
-    def reset(self):
-        self.score = 0
-        self.level = 1
-        self.current_question = None
-        self.max_num_add = 10
-        self.max_num_sub = 10
-        self.max_num_mul = 10
-        self.max_num_div = 10
-
     def increment_score(self):
         self.score += 1
-        # Every 5 points, increase level and difficulty
-        if self.score % 5 == 0:
-            self.level += 1
-            self.max_num_add += 5
+        
+        # Increase difficulty more gradually
+        self.max_num_add += 1  # Addition difficulty increases with each score
+        
+        # Increase difficulty for unlocked operations more slowly
+        if self.score >= 10:
+            if self.score % 2 == 0:  # Every 2 points after score 10
+                self.max_num_sub += 1
 
-            # Increase difficulty for unlocked operations more slowly
-            if self.level >= 10:
-                if self.score % 10 == 0:  # Every 10 points after level 10
-                    self.max_num_sub += 3
+        if self.score >= 20:
+            if self.score % 3 == 0:  # Every 3 points after score 20
+                self.max_num_mul += 1
 
-            if self.level >= 20:
-                if self.score % 15 == 0:  # Every 15 points after level 20
-                    self.max_num_mul += 2
-
-            if self.level >= 30:
-                if self.score % 20 == 0:  # Every 20 points after level 30
-                    self.max_num_div += 2
+        if self.score >= 30:
+            if self.score % 4 == 0:  # Every 4 points after score 30
+                self.max_num_div += 1
 
     def generate_question(self):
-        """Generate a question based on current level"""
-        # Determine available operations based on level
+        """Generate a question based on current score"""
+        # Determine available operations based on score
         operations = ['addition']
 
-        if self.level >= 10:
+        if self.score >= 10:
             operations.append('subtraction')
-        if self.level >= 20:
+        if self.score >= 20:
             operations.append('multiplication')
-        if self.level >= 30:
+        if self.score >= 30:
             operations.append('division')
 
         # Randomly select an operation
@@ -116,10 +108,10 @@ class Game:
     def get_current_operations(self):
         """Return list of currently available operations for display"""
         operations = ['Addition']
-        if self.level >= 10:
+        if self.score >= 10:
             operations.append('Subtraction')
-        if self.level >= 20:
+        if self.score >= 20:
             operations.append('Multiplication')
-        if self.level >= 30:
+        if self.score >= 30:
             operations.append('Division')
         return operations
