@@ -256,19 +256,6 @@ elif st.session_state.stage == 'game_over':
     else:
         st.info("🎯 勇敢的尝试！多练习基础乘法，提高反应速度！")
     
-    # 显示详细统计
-    st.markdown("---")
-    st.markdown("### 📊 本次挑战统计")
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("答对题数", questions_answered)
-    with col2:
-        st.metric("最终得分", score)
-    with col3:
-        accuracy = (score / max(questions_answered, 1)) * 100
-        st.metric("准确率", f"{accuracy:.1f}%")
-    
     # 显示达到的难度级别
     if questions_answered >= 26:
         difficulty_reached = "🚀 闪电模式 (1秒)"
