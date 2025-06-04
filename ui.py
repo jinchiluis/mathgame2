@@ -121,7 +121,7 @@ if st.session_state.stage == 'start':
     # 游戏说明
     with st.expander("🎮 游戏规则", expanded=False):
         st.markdown("""
-        - 🎯 从5个选项中选择正确的数学答案
+        - 🎯 从4个选项中选择正确的数学答案
         - 📈 每答对一题得1分，难度会逐渐增加
         - 🔢 达到10分解锁减法，20分解锁乘法，30分解锁除法
         - ❌ 答错一题游戏结束
@@ -142,14 +142,7 @@ elif st.session_state.stage == 'playing':
         question = game.generate_question()
 
     # 游戏状态显示
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("当前得分", game.score, delta=None)
-    with col2:
-        operations = game.get_current_operations()
-        st.metric("可用运算", len(operations), delta=None)
-    with col3:
-        st.metric("当前运算", ", ".join(operations), delta=None)
+    st.metric("当前得分", game.score, delta=None)
     
     st.markdown("---")
     
@@ -165,19 +158,15 @@ elif st.session_state.stage == 'playing':
     st.markdown("### 🤔 选择正确答案:")
     
     # Erstelle Buttons für jede Option
-    option_labels = ['A', 'B', 'C', 'D', 'E']
     selected_option = None
-    
+
     # Verwende Spalten für bessere Darstellung
     cols = st.columns(2)
-    
+
     for i, option in enumerate(question['options']):
         col_idx = i % 2
         with cols[col_idx]:
-            if st.button(f"{option_labels[i]}) {option}", 
-                        key=f"option_{i}", 
-                        use_container_width=True,
-                        type="secondary"):
+            if st.button(str(option), key=f"option_{i}", use_container_width=True, type="secondary"):
                 selected_option = option
                 
     # Wenn eine Option gewählt wurde, prüfe die Antwort
