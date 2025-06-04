@@ -84,15 +84,7 @@ def display_highscores():
                 ),
             }
         )
-
-def get_time_remaining(game):
-    """Get remaining time for current question"""
-    if st.session_state.question_start_time is None:
-        return game.time_limit
-    
-    current_time = time.time()
-    elapsed_time = current_time - st.session_state.question_start_time
-    return max(0, game.time_limit - elapsed_time)
+        
 
 # 开始界面
 if st.session_state.stage == 'start':
@@ -136,6 +128,21 @@ if st.session_state.stage == 'start':
 elif st.session_state.stage == 'playing':
     game = st.session_state.game
     
+    # 初始化问题开始时间
+    if st.session_state.question_start_time is None:
+        st.session_state.question_start_time = time.time()
+    
+    # 检查时间是否已过
+    current_time = time.time()
+    elapsed_time = current_time - st.session_state.question_start_time
+    time_remaining = max(0, game.time_limit - elapsed_time)
+    
+    # 如果时间用完，游戏结束
+    if time_remaining <= 0 and not st.session_state.timer_expired:
+        st.session_state.timer_expired = True
+        st.session_state.stage = 'game_over'
+        st.rerun()
+    
     question = game.current_question
     if not question:
         question = game.generate_question()
@@ -145,132 +152,7 @@ elif st.session_state.stage == 'playing':
     st.metric("当前得分", game.score, delta=None)
     
     # 时间限制信息
-    time_remaining = get_time_remaining(game)
     st.info(game.get_time_remaining_message())
-    
-    # JavaScript Timer Display with continuous countdown
-    st.markdown(f"""
-    <div id="timer-container" style="text-align: center; margin: 20px 0;">
-        <div id="timer-display" style="
-            font-size: 2.5em; 
-            font-weight: bold; 
-            padding: 15px 30px; 
-            border-radius: 10px; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            margin-bottom: 10px;
-        ">
-            <span id="countdown">⏰ {time_remaining:.1f}</span>
-        </div>
-        <div id="timer-status" style="font-size: 1.1em; color: #666;">
-            Zeit läuft! Schnell antworten!
-        </div>
-    </div>
-    
-    <script>
-    (function() {{
-        // Clear any existing timer
-        if (window.gameTimer) {{
-            clearInterval(window.gameTimer);
-        }}
-        
-        let timeRemaining = {time_remaining};
-        const timeLimit = {game.time_limit};
-        let isExpired = false;
-        let answerSubmitted = false;
-        
-        function updateTimer() {{
-            const display = document.getElementById('countdown');
-            const container = document.getElementById('timer-display');
-            const status = document.getElementById('timer-status');
-            
-            if (display && timeRemaining > 0 && !isExpired && !answerSubmitted) {{
-                display.textContent = '⏰ ' + timeRemaining.toFixed(1);
-                
-                // Change colors based on time remaining
-                if (timeRemaining > timeLimit * 0.6) {{
-                    container.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                    container.style.animation = 'none';
-                }} else if (timeRemaining > timeLimit * 0.3) {{
-                    container.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
-                    container.style.animation = 'none';
-                }} else {{
-                    container.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)';
-                    container.style.animation = 'pulse 0.5s infinite alternate';
-                }}
-                
-                timeRemaining -= 0.1;
-            }} else if (timeRemaining <= 0 && !isExpired && !answerSubmitted) {{
-                isExpired = true;
-                display.textContent = '⏰ 0.0';
-                status.textContent = 'Zeit abgelaufen! Spiel beendet...';
-                container.style.background = 'linear-gradient(135deg, #333 0%, #666 100%)';
-                container.style.animation = 'none';
-                clearInterval(window.gameTimer);
-                
-                // Create hidden form to submit time expiry
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.style.display = 'none';
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'time_expired_js';
-                input.value = 'true';
-                form.appendChild(input);
-                document.body.appendChild(form);
-                
-                // Submit after small delay
-                setTimeout(() => {{
-                    // Trigger Streamlit rerun by modifying session state through a hidden input
-                    const buttons = document.querySelectorAll('button[data-testid="baseButton-secondary"]');
-                    if (buttons.length > 0) {{
-                        // Find the first answer button and click it with time expired flag
-                        window.timeExpiredFlag = true;
-                        buttons[0].click();
-                    }} else {{
-                        // Fallback: reload page
-                        window.location.reload();
-                    }}
-                }}, 1000);
-            }}
-        }}
-        
-        // Add pulse animation CSS
-        if (!document.getElementById('pulse-style')) {{
-            const style = document.createElement('style');
-            style.id = 'pulse-style';
-            style.textContent = `
-                @keyframes pulse {{
-                    from {{ transform: scale(1); }}
-                    to {{ transform: scale(1.05); }}
-                }}
-            `;
-            document.head.appendChild(style);
-        }}
-        
-        // Start timer
-        updateTimer(); // Initial call
-        window.gameTimer = setInterval(updateTimer, 100);
-        
-        // Monitor for answer button clicks
-        document.addEventListener('click', function(e) {{
-            if (e.target.tagName === 'BUTTON' && e.target.textContent.match(/^\d+$/)) {{
-                answerSubmitted = true;
-                const status = document.getElementById('timer-status');
-                if (status && !isExpired) {{
-                    status.textContent = 'Antwort ausgewählt! Verarbeitung...';
-                }}
-                // Don't clear timer immediately - let it show the frozen time
-            }}
-        }});
-        
-        // Global flag for time expiry detection
-        window.timeExpiredFlag = false;
-        
-    }})();
-    </script>
-    """, unsafe_allow_html=True)
     
     st.markdown("---")
     
@@ -278,20 +160,18 @@ elif st.session_state.stage == 'playing':
     if time_remaining > 5:
         bg_color = "#e8f4fd"
         text_color = "#1f77b4"
-        border_color = "#28a745"
     elif time_remaining > 2:
         bg_color = "#fff3cd"
         text_color = "#856404"
-        border_color = "#ffc107"
     else:
         bg_color = "#f8d7da"
         text_color = "#721c24"
-        border_color = "#dc3545"
     
     st.markdown(f"""
-    <div style="text-align: center; padding: 30px; background-color: {bg_color}; border-radius: 15px; margin: 20px 0; border: 3px solid {border_color};">
+    <div style="text-align: center; padding: 30px; background-color: {bg_color}; border-radius: 15px; margin: 20px 0; border: 3px solid {'#28a745' if time_remaining > 5 else '#ffc107' if time_remaining > 2 else '#dc3545'};">
         <h2 style="color: {text_color}; margin-bottom: 20px;">📝 题目 #{game.questions_answered + 1}</h2>
         <h1 style="color: #333; font-size: 3em;">{question['text']}</h1>
+        <p style="color: {text_color}; font-size: 1.2em; margin-top: 15px;">⏰ {time_remaining:.1f} 秒剩余</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -300,46 +180,38 @@ elif st.session_state.stage == 'playing':
     
     # 创建选项按钮
     cols = st.columns(2)
-    
+    selected_option = None
+
     for i, option in enumerate(question['options']):
         col_idx = i % 2
         with cols[col_idx]:
-            if st.button(str(option), key=f"option_{i}_{game.questions_answered}", use_container_width=True):
-                # Check for JavaScript time expiry flag
-                st.markdown("""
-                <script>
-                if (window.timeExpiredFlag) {
-                    // Time expired during button click
-                    window.timeExpiredFlag = false;
-                }
-                </script>
-                """, unsafe_allow_html=True)
+            # 根据时间紧迫程度改变按钮类型
+            button_type = "secondary"
+            if st.button(str(option), key=f"option_{i}_{game.questions_answered}", use_container_width=True, type=button_type):
+                selected_option = option
                 
-                # Simple server-side time check as backup
-                current_time = time.time()
-                if st.session_state.question_start_time:
-                    elapsed = current_time - st.session_state.question_start_time
-                    if elapsed >= game.time_limit:
-                        st.session_state.timer_expired = True
-                        st.session_state.stage = 'game_over'
-                        st.rerun()
-                
-                # Process the answer
-                if game.check_answer(option):
-                    st.session_state.game.increment_score()
-                    st.success(f"🎉 正确！{question['text'].replace('?', '')} {option}")
-                    
-                    # 生成新问题并重置计时器
-                    st.session_state.game.generate_question()
-                    st.session_state.question_start_time = time.time()
-                    st.balloons()
-                    time.sleep(1)
-                    st.rerun()
-                else:
-                    st.error(f"❌ 错误！正确答案是: {question['answer']}")
-                    st.session_state.stage = 'game_over'
-                    time.sleep(2)
-                    st.rerun()
+    # 当选择了选项时检查答案
+    if selected_option is not None:
+        if game.check_answer(selected_option):
+            st.session_state.game.increment_score()
+            st.success(f"🎉 正确！{question['text'].replace('?', '')} {selected_option}")
+            
+            # 生成新问题并重置计时器
+            st.session_state.game.generate_question()
+            st.session_state.question_start_time = time.time()
+            st.balloons()
+            time.sleep(1)
+            st.rerun()
+        else:
+            st.error(f"❌ 错误！正确答案是: {question['answer']}")
+            st.session_state.stage = 'game_over'
+            time.sleep(2)
+            st.rerun()
+    
+    # 自动刷新以更新计时器
+    if time_remaining > 0:
+        time.sleep(0.1)
+        st.rerun()
     
     st.markdown("---")
     
