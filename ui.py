@@ -143,7 +143,7 @@ elif st.session_state.stage == 'playing':
     with col1:
         st.metric("当前得分", game.score, delta=None)
     with col2:
-        st.metric("难度等级", game.level, delta=None)
+        st.metric("难度等级", game.score, delta=None)
     
     st.markdown("---")
     
