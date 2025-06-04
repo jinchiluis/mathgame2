@@ -216,7 +216,7 @@ elif st.session_state.stage == 'playing':
     
     # 自动刷新以更新计时器
     if time_remaining > 9:
-        time.sleep(0.5)
+        time.sleep(1)
         st.rerun()
     elif time_remaining > 0:
         time.sleep(0.3)
