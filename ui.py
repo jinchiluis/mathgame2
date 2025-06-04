@@ -186,7 +186,7 @@ elif st.session_state.stage == 'playing':
         col_idx = i % 2
         with cols[col_idx]:
             # 根据时间紧迫程度改变按钮类型
-            button_type = "secondary" if time_remaining > 2 else "primary"
+            button_type = "secondary"
             if st.button(str(option), key=f"option_{i}_{game.questions_answered}", use_container_width=True, type=button_type):
                 selected_option = option
                 
