@@ -175,7 +175,7 @@ elif st.session_state.stage == 'playing':
     <div style="text-align: center; padding: 30px; background-color: {bg_color}; border-radius: 15px; margin: 20px 0; border: 3px solid {'#28a745' if time_remaining > 5 else '#ffc107' if time_remaining > 2 else '#dc3545'};">
         <h2 style="color: {text_color}; margin-bottom: 20px;">📝 题目 #{game.questions_answered + 1}</h2>
         <h1 style="color: #333; font-size: 3em;">{question['text']}</h1>
-        <p style="color: {text_color}; font-size: 1.2em; margin-top: 15px;">⏰ {time_remaining:.1f} 秒剩余</p>
+        <p style="color: {text_color}; font-size: 1.2em; margin-top: 15px;">⏰ {round(time_remaining)} 秒剩余</p>
     </div>
     """, unsafe_allow_html=True)
     
