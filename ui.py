@@ -153,12 +153,12 @@ elif st.session_state.stage == 'playing':
         st.session_state.question_id += 1  # Increment question ID for unique keys
 
     # 游戏状态显示，仅展示当前得分
-    st.metric("当前得分", game.score, delta=None)
+    #st.metric("当前得分", game.score, delta=None)
     
     # 时间限制信息
-    st.info(game.get_time_remaining_message())
+    #st.info(game.get_time_remaining_message())
     
-    st.markdown("---")
+    #st.markdown("---")
     
     # 题目显示 - 根据时间紧迫程度改变背景色
     if time_remaining > 5:
