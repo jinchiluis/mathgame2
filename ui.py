@@ -105,18 +105,7 @@ def display_highscores():
             }
         )
         
-        # 统计信息
-        total_players = len(scores)
-        highest_score = max(score['score'] for score in scores)
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("总玩家数", total_players, delta=None)
-        with col2:
-            st.metric("最高分", highest_score, delta=None)
-        with col3:
-            avg_score = sum(score['score'] for score in scores) / len(scores)
-            st.metric("平均分", f"{avg_score:.1f}", delta=None)
+
 
 # 开始界面
 if st.session_state.stage == 'start':
