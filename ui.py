@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from game import Game
 from highscores import HighscoreManager
 import pandas as pd
+import time
 
 # Load environment variables from .env if present
 load_dotenv()
@@ -18,16 +19,12 @@ if 'stage' not in st.session_state:
     st.session_state.stage = 'start'
 if 'game' not in st.session_state:
     st.session_state.game = Game()
-if 'selected_answer' not in st.session_state:
-    st.session_state.selected_answer = None
-if 'show_result' not in st.session_state:
-    st.session_state.show_result = False
-if 'result_message' not in st.session_state:
-    st.session_state.result_message = ""
-if 'is_correct' not in st.session_state:
-    st.session_state.is_correct = False
+if 'question_start_time' not in st.session_state:
+    st.session_state.question_start_time = None
+if 'timer_expired' not in st.session_state:
+    st.session_state.timer_expired = False
 
-st.title("🧮 数学游戏")
+st.title("🧮 极限数学挑战")
 
 def display_highscores():
     """显示高分榜的函数"""
@@ -66,23 +63,6 @@ def display_highscores():
         # 只显示需要的列
         display_df = df[['排名', '玩家', '得分']]
         
-        # 使用自定义CSS样式
-        st.markdown("""
-        <style>
-        .highscore-table {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            border-radius: 15px;
-            margin: 20px 0;
-        }
-        .highscore-table h3 {
-            color: white;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
         # 显示表格
         st.dataframe(
             display_df,
@@ -105,7 +85,19 @@ def display_highscores():
             }
         )
         
-
+        # 统计信息
+        if scores:
+            total_players = len(scores)
+            highest_score = max(score['score'] for score in scores)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("总玩家数", total_players, delta=None)
+            with col2:
+                st.metric("最高分", highest_score, delta=None)
+            with col3:
+                avg_score = sum(score['score'] for score in scores) / len(scores)
+                st.metric("平均分", f"{avg_score:.1f}", delta=None)
 
 # 开始界面
 if st.session_state.stage == 'start':
@@ -114,111 +106,166 @@ if st.session_state.stage == 'start':
     st.markdown("---")
     
     # 游戏说明
-    with st.expander("🎮 游戏规则", expanded=False):
+    with st.expander("🎮 极限挑战规则", expanded=True):
         st.markdown("""
-        - 🎯 从4个选项中选择正确的数学答案
-        - 📈 每答对一题得1分，难度会逐渐增加
-        - 🔢 达到10分解锁减法，20分解锁乘法，30分解锁除法
-        - ❌ 答错一题游戏结束
-        - 🏆 挑战高分榜，成为数学之王！
+        ### 🔥 这是一个极具挑战性的数学游戏！
+        
+        **📚 题目类型:**
+        - 🔢 前10题：乘法 (1-10的数字)
+        - ➕ 第11题开始：乘法 + 除法混合
+        
+        **⏰ 时间压力:**
+        - 第1-5题：⏱️ 10秒答题时间
+        - 第6-10题：⏱️ 7秒答题时间  
+        - 第11-20题：⏱️ 5秒答题时间
+        - 第21-25题：⏱️ 3秒答题时间
+        - 第26题起：⏱️ 1秒答题时间！
+        
+        **💀 失败条件:**
+        - ❌ 答错任何一题 = 游戏结束
+        - ⏰ 时间用完 = 游戏结束
+        
+        **🏆 目标:**
+        - 在极限时间压力下保持准确性
+        - 挑战你的数学反应速度！
         """)
     
-    if st.button("🚀 开始游戏", type="primary", use_container_width=True):
+    if st.button("🚀 开始极限挑战", type="primary", use_container_width=True):
         st.session_state.stage = 'playing'
         st.session_state.game.reset()
-        st.session_state.selected_answer = None
-        st.session_state.show_result = False
-        st.session_state.result_message = ""
-        st.session_state.is_correct = False
+        st.session_state.question_start_time = time.time()
+        st.session_state.timer_expired = False
         st.rerun()
 
 # 游戏界面
 elif st.session_state.stage == 'playing':
     game = st.session_state.game
+    
+    # 初始化问题开始时间
+    if st.session_state.question_start_time is None:
+        st.session_state.question_start_time = time.time()
+    
+    # 检查时间是否已过
+    current_time = time.time()
+    elapsed_time = current_time - st.session_state.question_start_time
+    time_remaining = max(0, game.time_limit - elapsed_time)
+    
+    # 如果时间用完，游戏结束
+    if time_remaining <= 0 and not st.session_state.timer_expired:
+        st.session_state.timer_expired = True
+        st.session_state.stage = 'game_over'
+        st.rerun()
+    
     question = game.current_question
     if not question:
         question = game.generate_question()
+        st.session_state.question_start_time = time.time()  # Reset timer for new question
 
     # 游戏状态显示
-    st.metric("当前得分", game.score, delta=None)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("当前得分", game.score, delta=None)
+    with col2:
+        st.metric("已答题数", game.questions_answered, delta=None)
+    with col3:
+        # 时间显示，根据剩余时间改变颜色
+        if time_remaining > 5:
+            timer_color = "🟢"
+        elif time_remaining > 2:
+            timer_color = "🟡"
+        else:
+            timer_color = "🔴"
+        
+        st.metric(f"{timer_color} 剩余时间", f"{time_remaining:.1f}s", delta=None)
+    
+    # 时间限制信息
+    st.info(game.get_time_remaining_message())
     
     st.markdown("---")
     
-    # 题目显示
+    # 题目显示 - 根据时间紧迫程度改变背景色
+    if time_remaining > 5:
+        bg_color = "#e8f4fd"
+        text_color = "#1f77b4"
+    elif time_remaining > 2:
+        bg_color = "#fff3cd"
+        text_color = "#856404"
+    else:
+        bg_color = "#f8d7da"
+        text_color = "#721c24"
+    
     st.markdown(f"""
-    <div style="text-align: center; padding: 30px; background-color: #e8f4fd; border-radius: 15px; margin: 20px 0;">
-        <h2 style="color: #1f77b4; margin-bottom: 20px;">📝 题目</h2>
+    <div style="text-align: center; padding: 30px; background-color: {bg_color}; border-radius: 15px; margin: 20px 0; border: 3px solid {'#28a745' if time_remaining > 5 else '#ffc107' if time_remaining > 2 else '#dc3545'};">
+        <h2 style="color: {text_color}; margin-bottom: 20px;">📝 题目 #{game.questions_answered + 1}</h2>
         <h1 style="color: #333; font-size: 3em;">{question['text']}</h1>
+        <p style="color: {text_color}; font-size: 1.2em; margin-top: 15px;">⏰ {time_remaining:.1f} 秒剩余</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # 显示上一题的结果（如果有）
-    if st.session_state.show_result:
-        if st.session_state.is_correct:
-            st.success(st.session_state.result_message)
-            st.balloons()
-        else:
-            st.error(st.session_state.result_message)
     
     # Multiple Choice Options
     st.markdown("### 🤔 选择正确答案:")
     
-    # 创建按钮选项
-    selected_option = None
+    # 创建选项按钮
     cols = st.columns(2)
+    selected_option = None
 
     for i, option in enumerate(question['options']):
         col_idx = i % 2
         with cols[col_idx]:
-            if st.button(str(option), key=f"option_{i}", use_container_width=True, type="secondary"):
+            # 根据时间紧迫程度改变按钮类型
+            button_type = "secondary" if time_remaining > 2 else "primary"
+            if st.button(str(option), key=f"option_{i}_{game.questions_answered}", use_container_width=True, type=button_type):
                 selected_option = option
                 
-    # 处理答案选择
+    # 当选择了选项时检查答案
     if selected_option is not None:
         if game.check_answer(selected_option):
-            # 正确答案
             st.session_state.game.increment_score()
-            st.session_state.result_message = f"🎉 正确！{question['text'].replace('?', '')} {selected_option}"
-            st.session_state.is_correct = True
-            st.session_state.show_result = True
-            st.session_state.game.generate_question()  # 生成新题目
+            st.success(f"🎉 正确！{question['text'].replace('?', '')} {selected_option}")
+            
+            # 生成新问题并重置计时器
+            st.session_state.game.generate_question()
+            st.session_state.question_start_time = time.time()
+            st.balloons()
+            time.sleep(1)
             st.rerun()
         else:
-            # 错误答案
-            st.session_state.result_message = f"❌ 错误！正确答案是: {question['answer']}"
-            st.session_state.is_correct = False
-            st.session_state.show_result = True
+            st.error(f"❌ 错误！正确答案是: {question['answer']}")
             st.session_state.stage = 'game_over'
+            time.sleep(2)
             st.rerun()
     
-    st.markdown("---")
+    # 自动刷新以更新计时器
+    if time_remaining > 0:
+        time.sleep(0.1)
+        st.rerun()
     
-    # 显示当前可用的运算类型
-    current_ops = game.get_current_operations()
-    st.info(f"当前解锁运算: {' • '.join(current_ops)}")
+    st.markdown("---")
     
     # 返回按钮
     if st.button("🏠 返回主菜单"):
         st.session_state.stage = 'start'
-        st.session_state.show_result = False
+        st.session_state.question_start_time = None
+        st.session_state.timer_expired = False
         st.rerun()
 
 # 游戏结束界面
 elif st.session_state.stage == 'game_over':
     score = st.session_state.game.score
+    questions_answered = st.session_state.game.questions_answered
     
-    # 显示最后一题的结果
-    if st.session_state.show_result and not st.session_state.is_correct:
-        st.error(st.session_state.result_message)
-        st.session_state.show_result = False  # 重置以避免重复显示
+    # 确定失败原因
+    failure_reason = "⏰ 时间用完了！" if st.session_state.timer_expired else "❌ 答案错误！"
     
-    # 游戏结束界面
+    # 游戏结束动画效果
     st.markdown(f"""
     <div style="text-align: center; padding: 40px; background: linear-gradient(135deg, #ff6b6b, #ee5a24); border-radius: 20px; color: white; margin: 20px 0;">
         <h1>🎮 游戏结束!</h1>
+        <h2>{failure_reason}</h2>
         <h2>你的最终得分: {score} 分</h2>
+        <h3>总共答对: {questions_answered} 题</h3>
         <p style="font-size: 1.2em; margin-top: 20px;">
-            {'🎉 太棒了！' if score >= 15 else '👍 不错的尝试！' if score >= 8 else '💪 继续努力！'}
+            {'🔥 极限高手！' if score >= 20 else '⚡ 反应神速！' if score >= 15 else '💪 已经很棒了！' if score >= 10 else '🎯 继续挑战！'}
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -226,13 +273,42 @@ elif st.session_state.stage == 'game_over':
     # 成绩评价
     if score >= 25:
         st.balloons()
-        st.success("🏆 数学天才！你的表现令人惊叹！")
+        st.success("🏆 数学闪电侠！你在极限压力下的表现令人惊叹！")
+    elif score >= 20:
+        st.success("⚡ 极速计算王！你的反应速度超乎常人！")
     elif score >= 15:
-        st.success("⭐ 数学高手！表现很棒！")
-    elif score >= 8:
-        st.info("📚 继续练习，你会更棒的！")
+        st.success("🔥 时间战士！在高压下仍能保持准确性！")
+    elif score >= 10:
+        st.info("💫 不错的挑战！继续练习能做得更好！")
     else:
-        st.info("💡 多练习基础题目，下次一定能做得更好！")
+        st.info("🎯 勇敢的尝试！多练习基础乘法，提高反应速度！")
+    
+    # 显示详细统计
+    st.markdown("---")
+    st.markdown("### 📊 本次挑战统计")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("答对题数", questions_answered)
+    with col2:
+        st.metric("最终得分", score)
+    with col3:
+        accuracy = (score / max(questions_answered, 1)) * 100
+        st.metric("准确率", f"{accuracy:.1f}%")
+    
+    # 显示达到的难度级别
+    if questions_answered >= 26:
+        difficulty_reached = "🚀 闪电模式 (1秒)"
+    elif questions_answered >= 21:
+        difficulty_reached = "⚡ 极速挑战 (3秒)"
+    elif questions_answered >= 11:
+        difficulty_reached = "🔥 快速模式 (5秒)"
+    elif questions_answered >= 6:
+        difficulty_reached = "⏰ 加速阶段 (7秒)"
+    else:
+        difficulty_reached = "🎯 练习阶段 (10秒)"
+    
+    st.info(f"最高难度达到: {difficulty_reached}")
     
     st.markdown("---")
     
@@ -244,15 +320,14 @@ elif st.session_state.stage == 'game_over':
             if name.strip():
                 highscore_manager.record_highscore(name.strip(), score)
                 st.success("✅ 成绩已保存到高分榜！")
-                # 延迟跳转，让用户看到成功消息
-                if st.button("🏠 返回主菜单", key="return_after_save"):
-                    st.session_state.stage = 'start'
-                    st.rerun()
+                st.session_state.stage = 'start'
+                st.session_state.timer_expired = False
+                st.rerun()
             else:
                 st.warning("⚠️ 请输入你的名字")
     
     with col2:
-        if st.button("🔄 重新开始", use_container_width=True):
+        if st.button("🔄 重新挑战", use_container_width=True):
             st.session_state.stage = 'start'
-            st.session_state.show_result = False
+            st.session_state.timer_expired = False
             st.rerun()
