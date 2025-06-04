@@ -28,17 +28,6 @@ if 'question_id' not in st.session_state:
 
 st.title("🧮 极限数学挑战")
 
-# 移除按钮高亮状态，特别是在移动设备上
-st.markdown("""
-<style>
-button:focus, button:active {
-    outline: none !important;
-    background: inherit !important;
-    box-shadow: none !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 def display_highscores():
     """显示高分榜的函数"""
     st.header("🏆 高分榜")
