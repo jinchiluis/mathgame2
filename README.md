@@ -4,5 +4,7 @@
 
 ## 运行
 1. 安装依赖：`pip install -r requirements.txt`
-2. 设置环境变量 `SUPABASE_URL` 和 `SUPABASE_KEY` 以连接到 Supabase。
+2. 复制 `.env.example` 为 `.env` 并填写 `SUPABASE_URL` 与 `SUPABASE_KEY` 值。
+   本地运行时会通过 `python-dotenv` 自动加载 `.env`。
+   部署到 Streamlit Cloud 时可改用 `st.secrets` 存放这些值。
 3. 运行应用：`streamlit run ui.py`
