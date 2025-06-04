@@ -58,13 +58,44 @@ class Game:
 
         return self.current_question
 
+    def generate_multiple_choice_options(self, correct_answer):
+        """Generate 5 unique multiple choice options including the correct answer"""
+        options = [correct_answer]
+        
+        # Generate 4 incorrect options
+        while len(options) < 5:
+            # Create plausible wrong answers
+            if correct_answer <= 5:
+                # For small numbers, add/subtract small amounts
+                wrong = correct_answer + random.choice([-3, -2, -1, 1, 2, 3])
+            elif correct_answer <= 20:
+                # For medium numbers, vary more
+                wrong = correct_answer + random.choice([-5, -4, -3, -2, -1, 1, 2, 3, 4, 5])
+            else:
+                # For larger numbers, vary by percentage
+                variation = max(1, int(correct_answer * random.uniform(0.1, 0.3)))
+                wrong = correct_answer + random.choice([-variation, variation])
+                
+            # Ensure positive numbers and no duplicates
+            if wrong > 0 and wrong not in options:
+                options.append(wrong)
+        
+        # Shuffle the options so correct answer isn't always first
+        random.shuffle(options)
+        
+        return options
+
     def generate_addition(self):
         """Generate addition question"""
         a = random.randint(1, self.max_num_add)
         b = random.randint(1, self.max_num_add)
+        correct_answer = a + b
+        options = self.generate_multiple_choice_options(correct_answer)
+        
         return {
             'text': f"{a} + {b} = ?",
-            'answer': str(a + b)
+            'answer': correct_answer,
+            'options': options
         }
 
     def generate_subtraction(self):
@@ -74,18 +105,26 @@ class Game:
         # Ensure a >= b for positive result
         if a < b:
             a, b = b, a
+        correct_answer = a - b
+        options = self.generate_multiple_choice_options(correct_answer)
+        
         return {
             'text': f"{a} - {b} = ?",
-            'answer': str(a - b)
+            'answer': correct_answer,
+            'options': options
         }
 
     def generate_multiplication(self):
         """Generate multiplication question"""
         a = random.randint(1, self.max_num_mul)
         b = random.randint(1, self.max_num_mul)
+        correct_answer = a * b
+        options = self.generate_multiple_choice_options(correct_answer)
+        
         return {
             'text': f"{a} × {b} = ?",
-            'answer': str(a * b)
+            'answer': correct_answer,
+            'options': options
         }
 
     def generate_division(self):
@@ -94,16 +133,19 @@ class Game:
         quotient = random.randint(1, self.max_num_div)
         divisor = random.randint(2, min(self.max_num_div, 12))  # Keep divisor reasonable
         dividend = quotient * divisor  # This ensures clean division
+        correct_answer = quotient
+        options = self.generate_multiple_choice_options(correct_answer)
 
         return {
             'text': f"{dividend} ÷ {divisor} = ?",
-            'answer': str(quotient)
+            'answer': correct_answer,
+            'options': options
         }
 
-    def check_answer(self, answer: str) -> bool:
+    def check_answer(self, selected_answer) -> bool:
         if not self.current_question:
             return False
-        return answer.strip() == self.current_question['answer']
+        return selected_answer == self.current_question['answer']
 
     def get_current_operations(self):
         """Return list of currently available operations for display"""
