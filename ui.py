@@ -26,7 +26,7 @@ if st.session_state.stage == 'start':
     if st.button("开始游戏"):
         st.session_state.stage = 'playing'
         st.session_state.game.reset()
-        st.experimental_rerun()
+        st.rerun()
 
 # 游戏界面
 elif st.session_state.stage == 'playing':
@@ -42,10 +42,10 @@ elif st.session_state.stage == 'playing':
             st.session_state.game.increment_score()
             st.success("正确！")
             st.session_state.game.generate_question()
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.session_state.stage = 'game_over'
-            st.experimental_rerun()
+            st.rerun()
 
 # 游戏结束界面
 elif st.session_state.stage == 'game_over':
@@ -56,4 +56,4 @@ elif st.session_state.stage == 'game_over':
         if name:
             highscore_manager.record_highscore(name, score)
         st.session_state.stage = 'start'
-        st.experimental_rerun()
+        st.rerun()
