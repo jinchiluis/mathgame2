@@ -20,6 +20,12 @@ if 'game' not in st.session_state:
     st.session_state.game = Game()
 if 'selected_answer' not in st.session_state:
     st.session_state.selected_answer = None
+if 'show_result' not in st.session_state:
+    st.session_state.show_result = False
+if 'result_message' not in st.session_state:
+    st.session_state.result_message = ""
+if 'is_correct' not in st.session_state:
+    st.session_state.is_correct = False
 
 st.title("🧮 数学游戏")
 
@@ -132,6 +138,9 @@ if st.session_state.stage == 'start':
         st.session_state.stage = 'playing'
         st.session_state.game.reset()
         st.session_state.selected_answer = None
+        st.session_state.show_result = False
+        st.session_state.result_message = ""
+        st.session_state.is_correct = False
         st.rerun()
 
 # 游戏界面
@@ -154,13 +163,19 @@ elif st.session_state.stage == 'playing':
     </div>
     """, unsafe_allow_html=True)
     
-    # Multiple Choice Optionen
+    # 显示上一题的结果（如果有）
+    if st.session_state.show_result:
+        if st.session_state.is_correct:
+            st.success(st.session_state.result_message)
+            st.balloons()
+        else:
+            st.error(st.session_state.result_message)
+    
+    # Multiple Choice Options
     st.markdown("### 🤔 选择正确答案:")
     
-    # Erstelle Buttons für jede Option
+    # 创建按钮选项
     selected_option = None
-
-    # Verwende Spalten für bessere Darstellung
     cols = st.columns(2)
 
     for i, option in enumerate(question['options']):
@@ -169,37 +184,46 @@ elif st.session_state.stage == 'playing':
             if st.button(str(option), key=f"option_{i}", use_container_width=True, type="secondary"):
                 selected_option = option
                 
-    # Wenn eine Option gewählt wurde, prüfe die Antwort
+    # 处理答案选择
     if selected_option is not None:
         if game.check_answer(selected_option):
+            # 正确答案
             st.session_state.game.increment_score()
-            st.success(f"🎉 正确！{question['text'].replace('?', '')} {selected_option}")
-            st.session_state.game.generate_question()
-            st.balloons()
-            # 短暂延迟以获得更好的用户体验
-            import time
-            time.sleep(1)
+            st.session_state.result_message = f"🎉 正确！{question['text'].replace('?', '')} {selected_option}"
+            st.session_state.is_correct = True
+            st.session_state.show_result = True
+            st.session_state.game.generate_question()  # 生成新题目
             st.rerun()
         else:
-            st.error(f"❌ 错误！正确答案是: {question['answer']}")
+            # 错误答案
+            st.session_state.result_message = f"❌ 错误！正确答案是: {question['answer']}"
+            st.session_state.is_correct = False
+            st.session_state.show_result = True
             st.session_state.stage = 'game_over'
-            # 短暂延迟以获得更好的用户体验
-            import time
-            time.sleep(2)
             st.rerun()
     
     st.markdown("---")
     
+    # 显示当前可用的运算类型
+    current_ops = game.get_current_operations()
+    st.info(f"当前解锁运算: {' • '.join(current_ops)}")
+    
     # 返回按钮
     if st.button("🏠 返回主菜单"):
         st.session_state.stage = 'start'
+        st.session_state.show_result = False
         st.rerun()
 
 # 游戏结束界面
 elif st.session_state.stage == 'game_over':
     score = st.session_state.game.score
     
-    # 游戏结束动画效果
+    # 显示最后一题的结果
+    if st.session_state.show_result and not st.session_state.is_correct:
+        st.error(st.session_state.result_message)
+        st.session_state.show_result = False  # 重置以避免重复显示
+    
+    # 游戏结束界面
     st.markdown(f"""
     <div style="text-align: center; padding: 40px; background: linear-gradient(135deg, #ff6b6b, #ee5a24); border-radius: 20px; color: white; margin: 20px 0;">
         <h1>🎮 游戏结束!</h1>
@@ -231,12 +255,15 @@ elif st.session_state.stage == 'game_over':
             if name.strip():
                 highscore_manager.record_highscore(name.strip(), score)
                 st.success("✅ 成绩已保存到高分榜！")
-                st.session_state.stage = 'start'
-                st.rerun()
+                # 延迟跳转，让用户看到成功消息
+                if st.button("🏠 返回主菜单", key="return_after_save"):
+                    st.session_state.stage = 'start'
+                    st.rerun()
             else:
                 st.warning("⚠️ 请输入你的名字")
     
     with col2:
         if st.button("🔄 重新开始", use_container_width=True):
             st.session_state.stage = 'start'
+            st.session_state.show_result = False
             st.rerun()
