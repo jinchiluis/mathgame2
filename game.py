@@ -59,11 +59,11 @@ class Game:
         return self.current_question
 
     def generate_multiple_choice_options(self, correct_answer):
-        """Generate 5 unique multiple choice options including the correct answer"""
+        """Generate 4 unique multiple choice options including the correct answer"""
         options = [correct_answer]
-        
-        # Generate 4 incorrect options
-        while len(options) < 5:
+
+        # Generate 3 incorrect options
+        while len(options) < 4:
             # Create plausible wrong answers
             if correct_answer <= 5:
                 # For small numbers, add/subtract small amounts
