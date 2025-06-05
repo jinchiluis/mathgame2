@@ -9,7 +9,7 @@ import time
 # Load environment variables from .env if present
 load_dotenv()
 
-# 初始化 Supabase 高分管理器 000
+# 初始化 Supabase 高分管理器 00
 supabase_url = os.getenv("SUPABASE_URL", st.secrets.get("SUPABASE_URL"))
 supabase_key = os.getenv("SUPABASE_KEY", st.secrets.get("SUPABASE_KEY"))
 highscore_manager = HighscoreManager(supabase_url, supabase_key)
